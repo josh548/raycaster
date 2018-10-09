@@ -25,6 +25,39 @@ let cameraAngle = 0;
 const cameraFov = Math.PI / 3;
 const rayAngleIncrement = (cameraFov / cameraCanvas.width);
 
+let leftKeyDown = false;
+let upKeyDown = false;
+let rightKeyDown = false;
+let downKeyDown = false;
+
+document.addEventListener("keydown", (event) => {
+    if (event.keyCode === 37) {
+        leftKeyDown = true;
+    } else if (event.keyCode === 38) {
+        upKeyDown = true;
+    } else if (event.keyCode === 39) {
+        rightKeyDown = true;
+    } else if (event.keyCode === 40) {
+        downKeyDown = true;
+    }
+});
+
+document.addEventListener("keyup", (event) => {
+    if (event.keyCode === 37) {
+        leftKeyDown = false;
+    } else if (event.keyCode === 38) {
+        upKeyDown = false;
+    } else if (event.keyCode === 39) {
+        rightKeyDown = false;
+    } else if (event.keyCode === 40) {
+        downKeyDown = false;
+    }
+});
+
+/**
+ * Returns an equivalent angle between 0 and 2pi radians.
+ * @param x An angle in radians.
+ */
 function normalizeAngle(angle: number): number {
     if (angle < 0) {
         return angle + (Math.PI * 2);
@@ -35,34 +68,14 @@ function normalizeAngle(angle: number): number {
     }
 }
 
-document.addEventListener("keydown", (event) => {
-    if (event.keyCode === 37) {
-        // left arrow key
-        cameraAngle -= Math.PI / 16;
-        cameraAngle = normalizeAngle(cameraAngle);
-    } else if (event.keyCode === 38) {
-        // up arrow key
-        cameraX += Math.cos(cameraAngle) / 2;
-        cameraY += Math.sin(cameraAngle) / 2;
-    } else if (event.keyCode === 39) {
-        // right arrow key
-        cameraAngle += Math.PI / 16;
-        cameraAngle = normalizeAngle(cameraAngle);
-    } else if (event.keyCode === 40) {
-        // down arrow key
-        cameraX -= Math.cos(cameraAngle) / 2;
-        cameraY -= Math.sin(cameraAngle) / 2;
-    }
-});
-
-function renderLoop(): void {
-    cameraContext.fillStyle = "black";
-    cameraContext.fillRect(0, 0, cameraCanvas.width, cameraCanvas.height);
-
-    let rayAngle = cameraAngle - (cameraFov / 2);
-    for (let slice = 0; slice <= cameraCanvas.width; slice++) {
-        rayAngle = normalizeAngle(rayAngle + rayAngleIncrement);
-
+/**
+ * Returns the distance from the origin of the ray to the first wall that the
+ * ray hits, or `Infinity` if the ray never hits a wall.
+ * @param startX The x value of the point from which the ray is cast.
+ * @param startY The y value of the point from which the ray is cast.
+ * @param rayAngle The angle in radians at which the ray is cast.
+ */
+function castRay(startX: number, startY: number, rayAngle: number): number {
         const isRayFacingUp = rayAngle > Math.PI;
         const isRayFacingLeft = rayAngle > Math.PI / 2 && rayAngle < (Math.PI * 1.5);
 
@@ -72,15 +85,15 @@ function renderLoop(): void {
         let horizontalDeltaX;
         let horizontalDeltaY;
         if (isRayFacingUp) {
-            horizontalIntersectionY = Math.floor(cameraY);
+        horizontalIntersectionY = Math.floor(startY);
             horizontalDeltaX = -1 / Math.tan(rayAngle);
             horizontalDeltaY = -1;
         } else {
-            horizontalIntersectionY = Math.floor(cameraY) + 1;
+        horizontalIntersectionY = Math.floor(startY) + 1;
             horizontalDeltaX = 1 / Math.tan(rayAngle);
             horizontalDeltaY = 1;
         }
-        horizontalIntersectionX = cameraX + ((cameraY - horizontalIntersectionY) / -Math.tan(rayAngle));
+    horizontalIntersectionX = startX + ((startY - horizontalIntersectionY) / -Math.tan(rayAngle));
 
         // vertical intersections
         let verticalIntersectionX;
@@ -88,15 +101,15 @@ function renderLoop(): void {
         let verticalDeltaX;
         let verticalDeltaY;
         if (isRayFacingLeft) {
-            verticalIntersectionX = Math.floor(cameraX);
+        verticalIntersectionX = Math.floor(startX);
             verticalDeltaX = -1;
             verticalDeltaY = -1 * Math.tan(rayAngle);
         } else {
-            verticalIntersectionX = Math.floor(cameraX) + 1;
+        verticalIntersectionX = Math.floor(startX) + 1;
             verticalDeltaX = 1;
             verticalDeltaY = 1 * Math.tan(rayAngle);
         }
-        verticalIntersectionY = cameraY + ((cameraX - verticalIntersectionX) * -Math.tan(rayAngle));
+    verticalIntersectionY = startY + ((startX - verticalIntersectionX) * -Math.tan(rayAngle));
 
         let hitWallHorizontally = false;
         while (true) {
@@ -136,25 +149,31 @@ function renderLoop(): void {
             }
         }
 
-        if (!(hitWallHorizontally || hitWallVertically)) {
-            continue;
-        }
-
         let horizontalWallDistance = Infinity;
         if (hitWallHorizontally) {
             horizontalWallDistance = Math.sqrt(
-                Math.pow(horizontalIntersectionX - cameraX, 2) + Math.pow(horizontalIntersectionY - cameraY, 2),
+            Math.pow(horizontalIntersectionX - startX, 2) + Math.pow(horizontalIntersectionY - startY, 2),
             );
         }
 
         let verticalWallDistance = Infinity;
         if (hitWallVertically) {
             verticalWallDistance = Math.sqrt(
-                Math.pow(verticalIntersectionX - cameraX, 2) + Math.pow(verticalIntersectionY - cameraY, 2),
+            Math.pow(verticalIntersectionX - startX, 2) + Math.pow(verticalIntersectionY - startY, 2),
             );
         }
 
-        const wallDistance = Math.min(horizontalWallDistance, verticalWallDistance);
+    return Math.min(horizontalWallDistance, verticalWallDistance);
+}
+
+function renderLoop(): void {
+    cameraContext.fillStyle = "black";
+    cameraContext.fillRect(0, 0, cameraCanvas.width, cameraCanvas.height);
+
+    let rayAngle = cameraAngle - (cameraFov / 2);
+    for (let slice = 0; slice <= cameraCanvas.width; slice++) {
+        rayAngle = normalizeAngle(rayAngle + rayAngleIncrement);
+        const wallDistance = castRay(cameraX, cameraY, rayAngle);
         const offsetAngle = cameraAngle - rayAngle;
         const adjustedDistance = Math.cos(offsetAngle) * wallDistance;
 
@@ -221,6 +240,23 @@ function renderLoop(): void {
     mapContext.moveTo(circleX, circleY);
     mapContext.lineTo(rightTargetX, rightTargetY);
     mapContext.stroke();
+
+    if (leftKeyDown) {
+        cameraAngle -= Math.PI / 135;
+        cameraAngle = normalizeAngle(cameraAngle);
+    }
+    if (upKeyDown) {
+        cameraX += Math.cos(cameraAngle) / 16;
+        cameraY += Math.sin(cameraAngle) / 16;
+    }
+    if (rightKeyDown) {
+        cameraAngle += Math.PI / 135;
+        cameraAngle = normalizeAngle(cameraAngle);
+    }
+    if (downKeyDown) {
+        cameraX -= Math.cos(cameraAngle) / 16;
+        cameraY -= Math.sin(cameraAngle) / 16;
+    }
 
     requestAnimationFrame(renderLoop);
 }
