@@ -1,0 +1,24 @@
+{
+  "name": "raycaster",
+  "version": "1.0.0",
+  "description": "Basic implementation of raycasting using HTML Canvas",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc -w",
+    "lint": "tslint -p tsconfig.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/escamilla/raycaster.git"
+  },
+  "author": "Joshua Escamilla <joshua.escamilla@selu.edu>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/escamilla/raycaster/issues"
+  },
+  "homepage": "https://github.com/escamilla/raycaster#readme",
+  "devDependencies": {
+    "tslint": "^6.1.2",
+    "typescript": "^3.9.3"
+  }
+}
