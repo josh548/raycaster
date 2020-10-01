@@ -112,6 +112,7 @@ function castRay(startX: number, startY: number, rayAngle: number): number {
     verticalIntersectionY = startY + ((startX - verticalIntersectionX) * -Math.tan(rayAngle));
 
         let hitWallHorizontally = false;
+        // eslint-disable-next-line no-constant-condition
         while (true) {
             const horizontalFlooredX = Math.floor(horizontalIntersectionX);
             const horizontalFlooredY = Math.floor(horizontalIntersectionY + (isRayFacingUp ? -0.01 : 0));
@@ -131,6 +132,7 @@ function castRay(startX: number, startY: number, rayAngle: number): number {
         }
 
         let hitWallVertically = false;
+        // eslint-disable-next-line no-constant-condition
         while (true) {
             const verticalFlooredX = Math.floor(verticalIntersectionX + (isRayFacingLeft ? -0.01 : 0));
             const verticalFlooredY = Math.floor(verticalIntersectionY);
